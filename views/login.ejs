@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | MemoMinder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/login.css">
+</head>
+<body>
+    <main class="login-container">
+        <div class="login-box">
+            <a href="/" class="logo">MemoMinder</a>
+            <h1>Welcome back</h1>
+            <p>Continue your learning journey</p>
+            
+            <form class="login-form" action="/login" method="post">
+                <div class="form-group">
+                    <label for="username">Email</label>
+                    <input type="email" id="username" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <% if(locals.message) { %>
+                    <span class="message"><%= message %></span>
+                <% } %>
+                
+                <button type="submit" class="btn btn-primary">Log in</button>
+            </form>
+
+            <p class="signup-link">Don't have an account? <a href="/signup">Sign up</a></p>
+        </div>
+    </main>
+</body>
+</html>

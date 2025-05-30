@@ -3,83 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Smart Study Scheduler</title>
-    <!-- <link rel="stylesheet" href="styles/dashboard.css"> -->
+    <title>Dashboard | MemoMinder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/dashboard.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Welcome, <%= user.username %></h1>
-            <a href="/logout" class="btn btn-secondary">Logout</a>
-        </header>
-
-        <section class="add-topic">
-            <h2>Add New Topic</h2>
-            <form action="/topics/add" method="POST">
-                <div class="form-group">
-                    <label for="subject_name">Subject</label>
-                    <input type="text" id="subject_name" name="subject_name" required>
-                </div>
-                <div class="form-group">
-                    <label for="topic_name">Topic</label>
-                    <input type="text" id="topic_name" name="topic_name" required>
-                </div>
-                <div class="form-group">
-                    <label for="initial_study_date">Initial Study Date</label>
-                    <input type="date" id="initial_study_date" name="initial_study_date" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Add Topic</button>
-            </form>
-        </section>
-
-        <section class="due-topics">
-            <h2>Topics Due for Revision</h2>
-            <% if (dueTopics && dueTopics.length > 0) { %>
-                <div class="topics-grid">
-                    <% dueTopics.forEach(topic => { %>
-                        <div class="topic-card">
-                            <h3><%= topic.subject_name %></h3>
-                            <p><%= topic.topic_name %></p>
-                            <p>Due: <%= new Date(topic.next_revision_date).toLocaleDateString() %></p>
-                            <form action="/topics/revise" method="POST">
-                                <input type="hidden" name="topic_id" value="<%= topic.id %>">
-                                <div class="rating-group">
-                                    <label>How well did you remember?</label>
-                                    <select name="retention_rating" required>
-                                        <option value="1">1 - Poor</option>
-                                        <option value="2">2 - Fair</option>
-                                        <option value="3">3 - Good</option>
-                                        <option value="4">4 - Very Good</option>
-                                        <option value="5">5 - Perfect</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-success">Complete Revision</button>
-                            </form>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>MemoMinder</h1>
+            </div>
+            <nav>
+                <a href="/dashboard" class="active">Dashboard</a>
+                <a href="/profile">Profile</a>
+                <a href="/logout">Logout</a>
+            </nav>
+            
+            <div class="upcoming-reviews">
+                <h2>Next 7 Days</h2>
+                <div class="upcoming-list">
+                    <% upcomingTopics.forEach(topic => { %>
+                        <div class="upcoming-item">
+                            <div class="topic-info">
+                                <h4><%= topic.subject_name %></h4>
+                                <p><%= topic.topic_name %></p>
+                            </div>
+                            <div class="date">
+                                <%= new Date(topic.next_revision_date).toLocaleDateString() %>
+                            </div>
                         </div>
                     <% }); %>
                 </div>
-            <% } else { %>
-                <p>No topics due for revision today!</p>
-            <% } %>
-        </section>
+            </div>
+        </aside>
 
-        <section class="all-topics">
-            <h2>All Topics</h2>
-            <% if (allTopics && allTopics.length > 0) { %>
-                <div class="topics-grid">
-                    <% allTopics.forEach(topic => { %>
-                        <div class="topic-card">
-                            <h3><%= topic.subject_name %></h3>
-                            <p><%= topic.topic_name %></p>
-                            <p>Next revision: <%= new Date(topic.next_revision_date).toLocaleDateString() %></p>
-                            <p>Current interval: <%= topic.current_interval %> days</p>
+        <main class="main-content">
+            <header>
+                <h2>Welcome back, <%= user.username %></h2>
+                <div class="date">
+                    <%= new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %>
+                </div>
+            </header>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Topics</h3>
+                    <p class="stat-number"><%= stats.total %></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Due Today</h3>
+                    <p class="stat-number"><%= stats.dueToday %></p>
+                </div>
+                <div class="stat-card">
+                    <h3>Weekly Revisions</h3>
+                    <p class="stat-number"><%= stats.weeklyRevisions %></p>
+                </div>
+            </div>
+
+            <section class="today-reviews">
+                <h2>Today's Reviews</h2>
+                <div class="reviews-grid">
+                    <% todayTopics.forEach(topic => { %>
+                        <div class="review-card">
+                            <div class="subject-tag"><%= topic.subject_name %></div>
+                            <h3><%= topic.topic_name %></h3>
+                            <p class="interval">Review #<%= topic.repetitions + 1 %></p>
+                            <a href="/review/<%= topic.id %>" class="review-btn">Start Review</a>
                         </div>
                     <% }); %>
                 </div>
-            <% } else { %>
-                <p>No topics added yet!</p>
-            <% } %>
+            </section>
+
+            <!-- exprement -->
+            <section class="add-topic">
+                <h2>Add New Topic</h2>
+                <form action="/topics/add" method="POST">
+                    <div class="form-group">
+                        <label for="subject_name">Subject</label>
+                        <input type="text" id="subject_name" name="subject_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="topic_name">Topic</label>
+                        <input type="text" id="topic_name" name="topic_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="initial_study_date">Initial Study Date</label>
+                        <input type="date" id="initial_study_date" name="initial_study_date" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Topic</button>
+                </form>
         </section>
+
+
+        </main>
     </div>
 </body>
 </html>

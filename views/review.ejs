@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Topic | MemoMinder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/review.css">
+</head>
+<body>
+    <div class="review-container">
+        <header>
+            <a href="/dashboard" class="back-btn">← Back to Dashboard</a>
+            <h1>Review Session</h1>
+        </header>
+
+        <main>
+            <div class="topic-info">
+                <div class="subject"><%= topic.subject_name %></div>
+                <h2><%= topic.topic_name %></h2>
+                <p class="review-count">Review #<%= topic.repetitions + 1 %></p>
+            </div>
+
+            <div class="review-box">
+                <p>How well did you remember this topic?</p>
+                
+                <form action="/review/<%= topic.id %>" method="POST" class="rating-form">
+                    <div class="rating-buttons">
+                        <button type="submit" name="quality" value="0" class="rating-btn again">
+                            Again (0)
+                        </button>
+                        <button type="submit" name="quality" value="3" class="rating-btn hard">
+                            Hard (3)
+                        </button>
+                        <button type="submit" name="quality" value="4" class="rating-btn good">
+                            Good (4)
+                        </button>
+                        <button type="submit" name="quality" value="5" class="rating-btn easy">
+                            Easy (5)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

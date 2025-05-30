@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Settings | MemoMinder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/profile.css">
+</head>
+<body>
+    <div class="profile-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <h1>MemoMinder</h1>
+            </div>
+            <nav>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/profile" class="active">Profile</a>
+                <a href="/logout">Logout</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <h2>Profile Settings</h2>
+            </header>
+
+            <% if (locals.error) { %>
+                <div class="alert error">
+                    <%= error %>
+                </div>
+            <% } %>
+
+            <% if (locals.success) { %>
+                <div class="alert success">
+                    <%= success %>
+                </div>
+            <% } %>
+
+            <section class="settings-section">
+                <h3>Change Password</h3>
+                <form action="/change-password" method="POST" class="settings-form">
+                    <div class="form-group">
+                        <label for="currentPassword">Current Password</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">New Password</label>
+                        <input type="password" id="newPassword" name="newPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </form>
+            </section>
+
+            <section class="settings-section danger-zone">
+                <h3>Danger Zone</h3>
+                <form action="/delete-account" method="POST" class="settings-form">
+                    <p class="warning-text">This action cannot be undone. All your data will be permanently deleted.</p>
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete your account? This cannot be undone.')">
+                        Delete Account
+                    </button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

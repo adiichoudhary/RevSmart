@@ -1,0 +1,132 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+    color: #1a1a1a;
+    line-height: 1.6;
+}
+
+.review-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+header {
+    margin-bottom: 3rem;
+    text-align: center;
+}
+
+.back-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    color: #6b7280;
+    text-decoration: none;
+    margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+
+.back-btn:hover {
+    color: #7c3aed;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #1a1a1a;
+}
+
+.topic-info {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.subject {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background-color: #f3e8ff;
+    color: #7c3aed;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.topic-info h2 {
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.review-count {
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.review-box {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.review-box p {
+    font-size: 1.25rem;
+    color: #374151;
+    margin-bottom: 2rem;
+}
+
+.rating-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.rating-btn {
+    padding: 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rating-btn.again {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.rating-btn.again:hover {
+    background-color: #fecaca;
+}
+
+.rating-btn.hard {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.rating-btn.hard:hover {
+    background-color: #fde68a;
+}
+
+.rating-btn.good {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+.rating-btn.good:hover {
+    background-color: #a7f3d0;
+}
+
+.rating-btn.easy {
+    background-color: #ddd6fe;
+    color: #7c3aed;
+}
+
+.rating-btn.easy:hover {
+    background-color: #c4b5fd;
+}

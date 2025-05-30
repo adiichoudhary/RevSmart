@@ -50,28 +50,35 @@ const requireLogin = (req, res, next) => {
     }
 };
 
-// Calculate next revision date based on current interval
-const calculateNextRevisionDate = (currentInterval) => {
-    const today = new Date();
-    const nextDate = new Date(today);
-    nextDate.setDate(today.getDate() + currentInterval);
-    return nextDate;
-};
+// SM2 Algorithm Implementation
+const calculateNextReview = (quality, repetitions, easiness, interval) => {
+    // Quality: 0-5 rating from user
+    // Repetitions: number of times reviewed
+    // Easiness: E-Factor, starts at 2.5
+    // Interval: days between reviews
 
-// Calculate new interval based on retention rating
-const calculateNewInterval = (currentInterval, retentionRating) => {
-    // If retention is poor (1-2), decrease interval
-    if (retentionRating <= 2) {
-        return Math.max(1, Math.floor(currentInterval * 0.5));
+    if (quality < 3) {
+        repetitions = 0;
+        interval = 1;
+    } else {
+        repetitions += 1;
+        if (repetitions === 1) {
+            interval = 1;
+        } else if (repetitions === 2) {
+            interval = 6;
+        } else {
+            interval = Math.round(interval * easiness);
+        }
     }
-    // If retention is perfect (5), increase interval significantly
-    else if (retentionRating === 5) {
-        return Math.floor(currentInterval * 2.5);
-    }
-    // If retention is good (3-4), increase interval moderately
-    else {
-        return Math.floor(currentInterval * 1.5);
-    }
+
+    // Update easiness factor
+    easiness = Math.max(1.3, easiness + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+
+    return {
+        nextInterval: interval,
+        newRepetitions: repetitions,
+        newEasiness: easiness
+    };
 };
 
 // ROUTES
@@ -97,33 +104,181 @@ app.get("/signup", (req, res) => {
 
 app.get("/dashboard", requireLogin, async (req, res) => {
     try {
-        // Get topics due for revision today
-        const dueTopics = await db.query(
+        // Get topics due today
+        const todayTopics = await db.query(
             `SELECT * FROM topics 
              WHERE user_id = $1 
-             AND next_revision_date <= CURRENT_DATE
-             ORDER BY next_revision_date ASC`,
+             AND next_revision_date = CURRENT_DATE
+             ORDER BY subject_name`,
             [req.session.userId]
         );
 
-        // Get all topics for the user
-        const allTopics = await db.query(
+        // Get upcoming topics (next 7 days)
+        const upcomingTopics = await db.query(
             `SELECT * FROM topics 
              WHERE user_id = $1 
-             ORDER BY next_revision_date ASC`,
+             AND next_revision_date > CURRENT_DATE 
+             AND next_revision_date <= CURRENT_DATE + INTERVAL '7 days'
+             ORDER BY next_revision_date, subject_name`,
+            [req.session.userId]
+        );
+
+        // Get progress statistics
+        const totalTopics = await db.query(
+            "SELECT COUNT(*) FROM topics WHERE user_id = $1",
+            [req.session.userId]
+        );
+
+        const revisionsThisWeek = await db.query(
+            `SELECT COUNT(*) FROM revisions r
+             JOIN topics t ON r.topic_id = t.id
+             WHERE t.user_id = $1
+             AND r.revision_date >= CURRENT_DATE - INTERVAL '7 days'`,
             [req.session.userId]
         );
 
         res.render("dashboard.ejs", {
             user: req.session.user,
-            dueTopics: dueTopics.rows,
-            allTopics: allTopics.rows
+            todayTopics: todayTopics.rows,
+            upcomingTopics: upcomingTopics.rows,
+            stats: {
+                total: totalTopics.rows[0].count,
+                dueToday: todayTopics.rows.length,
+                weeklyRevisions: revisionsThisWeek.rows[0].count
+            }
         });
     } catch (err) {
-        console.error(err);
-        res.render("dashboard.ejs", {
+        console.error("Dashboard error:", err);
+        res.status(500).render("error.ejs", { message: "Failed to load dashboard" });
+    }
+});
+
+app.get("/review/:topicId", requireLogin, async (req, res) => {
+    try {
+        const topic = await db.query(
+            "SELECT * FROM topics WHERE id = $1 AND user_id = $2",
+            [req.params.topicId, req.session.userId]
+        );
+
+        if (topic.rows.length === 0) {
+            return res.status(404).render("error.ejs", { message: "Topic not found" });
+        }
+
+        res.render("review.ejs", { topic: topic.rows[0] });
+    } catch (err) {
+        console.error("Review error:", err);
+        res.status(500).render("error.ejs", { message: "Failed to load review page" });
+    }
+});
+
+app.post("/review/:topicId", requireLogin, async (req, res) => {
+    const { quality } = req.body;
+    const topicId = req.params.topicId;
+
+    try {
+        // Get current topic data
+        const topic = await db.query(
+            "SELECT * FROM topics WHERE id = $1 AND user_id = $2",
+            [topicId, req.session.userId]
+        );
+
+        if (topic.rows.length === 0) {
+            return res.status(404).json({ error: "Topic not found" });
+        }
+
+        const currentTopic = topic.rows[0];
+
+        // Calculate next review using SM2
+        const {
+            nextInterval,
+            newRepetitions,
+            newEasiness
+        } = calculateNextReview(
+            parseInt(quality),
+            currentTopic.repetitions || 0,
+            currentTopic.easiness || 2.5,
+            currentTopic.current_interval
+        );
+
+        // Update topic with new values
+        //next_revision_date = CURRENT_DATE + ($1 || ' days')::interval
+        //CURRENT_DATE + make_interval(days => $1::int)
+
+        await db.query(
+            `UPDATE topics 
+             SET next_revision_date = CURRENT_DATE + make_interval(days => $1::int),
+                 current_interval = $1,
+                 repetitions = $2,
+                 easiness = $3
+             WHERE id = $4`,
+            [nextInterval, newRepetitions, newEasiness, topicId]
+        );
+
+        // Record the revision
+        await db.query(
+            `INSERT INTO revisions (topic_id, revision_date, retention_rating)
+             VALUES ($1, CURRENT_DATE, $2)`,
+            [topicId, quality]
+        );
+
+        res.redirect('/dashboard');
+    } catch (err) {
+        console.error("Review submission error:", err);
+        res.status(500).json({ error: "Failed to update review" });
+    }
+});
+
+// Profile routes
+app.get("/profile", requireLogin, (req, res) => {
+    res.render("profile.ejs", { user: req.session.user });
+});
+
+app.post("/change-password", requireLogin, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        const result = await db.query(
+            "SELECT password FROM users WHERE id = $1",
+            [req.session.userId]
+        );
+
+        const match = await bcrypt.compare(currentPassword, result.rows[0].password);
+        if (!match) {
+            return res.render("profile.ejs", {
+                user: req.session.user,
+                error: "Current password is incorrect"
+            });
+        }
+
+        const hash = await bcrypt.hash(newPassword, saltRounds);
+        await db.query(
+            "UPDATE users SET password = $1 WHERE id = $2",
+            [hash, req.session.userId]
+        );
+
+        res.render("profile.ejs", {
             user: req.session.user,
-            error: "Failed to load topics"
+            success: "Password updated successfully"
+        });
+    } catch (err) {
+        console.error("Password change error:", err);
+        res.render("profile.ejs", {
+            user: req.session.user,
+            error: "Failed to update password"
+        });
+    }
+});
+
+app.post("/delete-account", requireLogin, async (req, res) => {
+    try {
+        await db.query("DELETE FROM users WHERE id = $1", [req.session.userId]);
+        req.session.destroy();
+        res.redirect('/');
+    } catch (err) {
+        console.error("Account deletion error:", err);
+        res.render("profile.ejs", {
+            user: req.session.user,
+            error: "Failed to delete account"
         });
     }
 });
@@ -157,54 +312,7 @@ app.post("/topics/add", requireLogin, async (req, res) => {
     }
 });
 
-// Complete revision
-app.post("/topics/revise", requireLogin, async (req, res) => {
-    const { topic_id, retention_rating } = req.body;
-    
-    try {
-        // Get current topic data
-        const topicResult = await db.query(
-            "SELECT * FROM topics WHERE id = $1 AND user_id = $2",
-            [topic_id, req.session.userId]
-        );
-        
-        if (topicResult.rows.length === 0) {
-            return res.status(404).json({ error: "Topic not found" });
-        }
-        
-        const topic = topicResult.rows[0];
-        const newInterval = calculateNewInterval(topic.current_interval, parseInt(retention_rating));
-        const nextRevisionDate = calculateNextRevisionDate(newInterval);
-        
-        // Begin transaction
-        await db.query('BEGIN');
-        
-        // Record the revision
-        await db.query(
-            `INSERT INTO revisions (topic_id, revision_date, retention_rating)
-             VALUES ($1, CURRENT_DATE, $2)`,
-            [topic_id, retention_rating]
-        );
-        
-        // Update topic with new interval and next revision date
-        await db.query(
-            `UPDATE topics 
-             SET current_interval = $1, next_revision_date = $2
-             WHERE id = $3`,
-            [newInterval, nextRevisionDate, topic_id]
-        );
-        
-        await db.query('COMMIT');
-        res.redirect('/dashboard');
-    } catch (err) {
-        await db.query('ROLLBACK');
-        console.error(err);
-        res.redirect('/dashboard?error=Failed to record revision');
-    }
-});
-
 // AUTHENTICATION
-
 // REGISTER NEW USER
 app.post("/register", async (req, res) => {
     const username = req.body.username;
@@ -281,8 +389,8 @@ app.post("/login", async (req, res) => {
     }
 });
 
-// Create necessary tables
-const createTables = async () => {
+// Create sessions table
+const createSessionTable = async () => {
     try {
         await db.query(`
             CREATE TABLE IF NOT EXISTS "user_sessions" (
@@ -292,35 +400,12 @@ const createTables = async () => {
                 CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
             )
         `);
-        
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS topics (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                subject_name VARCHAR(100) NOT NULL,
-                topic_name VARCHAR(255) NOT NULL,
-                initial_study_date DATE NOT NULL,
-                next_revision_date DATE NOT NULL,
-                current_interval INTEGER NOT NULL DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS revisions (
-                id SERIAL PRIMARY KEY,
-                topic_id INTEGER REFERENCES topics(id),
-                revision_date DATE NOT NULL,
-                retention_rating INTEGER CHECK (retention_rating BETWEEN 1 AND 5),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
     } catch (err) {
-        console.error('Error creating tables:', err);
+        console.error('Error creating session table:', err);
     }
 };
 
-createTables();
+createSessionTable();
 
 app.listen(port, () => {
     console.log(`Server is running at port ${port}...`);

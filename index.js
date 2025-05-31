@@ -200,10 +200,6 @@ app.post("/review/:topicId", requireLogin, async (req, res) => {
             currentTopic.current_interval
         );
 
-        // Update topic with new values
-        //next_revision_date = CURRENT_DATE + ($1 || ' days')::interval
-        //CURRENT_DATE + make_interval(days => $1::int)
-
         await db.query(
             `UPDATE topics 
              SET next_revision_date = CURRENT_DATE + make_interval(days => $1::int),
@@ -218,7 +214,7 @@ app.post("/review/:topicId", requireLogin, async (req, res) => {
         await db.query(
             `INSERT INTO revisions (topic_id, revision_date, retention_rating)
              VALUES ($1, CURRENT_DATE, $2)`,
-            [topicId, quality]
+            [topicId, parseInt(quality)]
         );
 
         res.redirect('/dashboard');

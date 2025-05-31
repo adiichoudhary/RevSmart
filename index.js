@@ -11,10 +11,10 @@ const saltRounds = 10;
 
 // Database configuration
 const db = new pg.Client({
-    user: "postgres",
-    host: "localhost",
-    database: "study_scheduler",
-    password: "Aditya@2311",
+    user: "postgres.iczhyonqbgjfvmxdigyz",
+    host: "aws-0-ap-south-1.pooler.supabase.com",
+    database: "postgres",
+    password: "Aditya@2311#",
     port: 5432
 });
 db.connect();

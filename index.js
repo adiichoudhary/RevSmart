@@ -22,7 +22,7 @@ db.connect();
 // Session store setup
 const PostgresqlStore = pgSession(session);
 const sessionStore = new PostgresqlStore({
-    pool: db,
+    pool: session,
     tableName: 'user_sessions'
 });
 
